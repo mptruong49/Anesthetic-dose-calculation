@@ -88,6 +88,7 @@
         .form-group {
             display: flex;
             flex-direction: column;
+            min-width: 0; /* Allows flex items to shrink */
         }
 
         .form-group label {
@@ -108,6 +109,10 @@
             color: #f1f5f9;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
         }
 
         .form-group input:focus, .form-group select:focus {
@@ -182,6 +187,10 @@
             background: rgba(51, 65, 85, 0.6);
             color: #f1f5f9;
             transition: all 0.3s ease;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            min-width: 0;
         }
 
         .anesthetic-inputs select:focus, .anesthetic-inputs input:focus {
@@ -330,6 +339,10 @@
             border: 1px solid rgba(5, 150, 105, 0.5);
         }
 
+        .safe .result-value {
+            color: #ffffff;
+        }
+
         .over-limit {
             background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
             border: 2px solid rgba(220, 38, 38, 0.5);
@@ -365,6 +378,171 @@
 
             .results-grid {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .header {
+                padding: 24px 20px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .patient-info {
+                padding: 20px;
+                gap: 16px;
+                grid-template-columns: 1fr;
+            }
+
+            .anesthetic-section {
+                padding: 20px;
+                margin-bottom: 24px;
+            }
+
+            .anesthetic-inputs {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .form-group input, 
+            .form-group select, 
+            .anesthetic-inputs select, 
+            .anesthetic-inputs input {
+                padding: 14px 16px;
+                font-size: 16px; /* Prevents zoom on iOS */
+                min-width: 0; /* Allows flex shrinking */
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+
+            .form-group label {
+                font-size: 0.85rem;
+                margin-bottom: 8px;
+            }
+
+            .anesthetic-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .anesthetic-header h3 {
+                font-size: 1.2rem;
+            }
+
+            .remove-btn {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+                align-self: flex-end;
+            }
+
+            .add-btn {
+                padding: 16px 24px;
+                font-size: 1rem;
+                margin: 20px auto;
+            }
+
+            .calculate-btn {
+                padding: 18px 32px;
+                font-size: 1.1rem;
+                margin: 32px auto;
+            }
+
+            .results {
+                padding: 24px 20px;
+            }
+
+            .results h2 {
+                font-size: 1.8rem;
+                margin-bottom: 24px;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .result-card {
+                padding: 20px;
+            }
+
+            .result-card h4 {
+                font-size: 0.9rem;
+            }
+
+            .result-value {
+                font-size: 1.4rem;
+            }
+
+            .warning {
+                padding: 16px 20px;
+                font-size: 0.9rem;
+            }
+
+            #convertedWeight {
+                font-size: 0.8rem;
+                margin-top: 6px;
+            }
+        }
+
+        @media (max-width: 390px) {
+            body {
+                padding: 8px;
+            }
+
+            .container {
+                border-radius: 16px;
+            }
+
+            .header {
+                padding: 20px 16px;
+            }
+
+            .content {
+                padding: 16px;
+            }
+
+            .patient-info {
+                padding: 16px;
+                margin-bottom: 24px;
+            }
+
+            .anesthetic-section {
+                padding: 16px;
+            }
+
+            .results {
+                padding: 20px 16px;
+            }
+
+            .form-group input, 
+            .form-group select, 
+            .anesthetic-inputs select, 
+            .anesthetic-inputs input {
+                padding: 12px 14px;
+                font-size: 16px;
+                border-radius: 8px;
+            }
+
+            .add-btn, .calculate-btn {
+                max-width: 100%;
+                margin-left: 0;
+                margin-right: 0;
             }
         }
 
@@ -520,19 +698,22 @@
                 name: 'Lidocaine 2%',
                 anestheticMgPerMl: 20,
                 epinephrineMgPerMl: 0.01,
-                mrdPerKg: 7.0
+                mrdPerKg: 7.0,
+                absoluteMRD: 500
             },
             articaine: {
                 name: 'Articaine 4%',
                 anestheticMgPerMl: 40,
                 epinephrineMgPerMl: 0.01,
-                mrdPerKg: 7.0
+                mrdPerKg: 7.0,
+                absoluteMRD: null // No absolute limit
             },
             mepivacaine: {
                 name: 'Mepivacaine 3%',
                 anestheticMgPerMl: 30,
                 epinephrineMgPerMl: 0,
-                mrdPerKg: 6.6
+                mrdPerKg: 6.6,
+                absoluteMRD: 400
             }
         };
 
@@ -642,6 +823,38 @@
             const resultsGrid = document.getElementById('resultsGrid');
             resultsGrid.innerHTML = '';
 
+            // Calculate the applicable MRD for safety comparison
+            let applicableMRD = Infinity;
+            let applicableMRDInfo = "";
+            
+            usedAnesthetics.forEach(type => {
+                const anesthetic = anesthetics[type];
+                const weightBasedMRD = weightInKg * anesthetic.mrdPerKg;
+                
+                // For each anesthetic, determine the effective MRD (smaller of weight-based or absolute)
+                let effectiveMRD;
+                if (anesthetic.absoluteMRD !== null) {
+                    effectiveMRD = Math.min(weightBasedMRD, anesthetic.absoluteMRD);
+                } else {
+                    effectiveMRD = weightBasedMRD;
+                }
+                
+                // Track the smallest effective MRD across all used anesthetics
+                if (effectiveMRD < applicableMRD) {
+                    applicableMRD = effectiveMRD;
+                    if (anesthetic.absoluteMRD !== null && anesthetic.absoluteMRD < weightBasedMRD) {
+                        applicableMRDInfo = `${anesthetic.name} (absolute limit)`;
+                    } else {
+                        applicableMRDInfo = `${anesthetic.name} (weight-based limit)`;
+                    }
+                }
+            });
+
+            // Check safety status
+            const anestheticOverLimit = totalAnestheticMg > applicableMRD;
+            const epiOverLimit = totals.epinephrine > epinephrineLimit;
+            const hasOverLimit = anestheticOverLimit || epiOverLimit;
+
             // 1. Patient Weight
             resultsGrid.innerHTML += `
                 <div class="result-card patient-weight-card">
@@ -650,73 +863,69 @@
                 </div>
             `;
 
-            // 2. Anesthetics Administered (only used ones)
-            usedAnesthetics.forEach(type => {
-                const anesthetic = anesthetics[type];
-                const mrd = weightInKg * anesthetic.mrdPerKg;
-                const isOverLimit = totals[type] > mrd;
-                
-                resultsGrid.innerHTML += `
-                    <div class="result-card ${isOverLimit ? 'over-limit' : ''}">
-                        <h4>${anesthetic.name} Administered</h4>
-                        <div class="result-value">${totals[type].toFixed(1)} mg</div>
-                    </div>
-                `;
-
-                // 3. MRD for each used anesthetic
-                resultsGrid.innerHTML += `
-                    <div class="result-card">
-                        <h4>${anesthetic.name} MRD</h4>
-                        <div class="result-value">${mrd.toFixed(1)} mg</div>
-                    </div>
-                `;
-            });
-
-            // 4. Epinephrine (if any used)
-            if (totals.epinephrine > 0) {
-                const epiOverLimit = totals.epinephrine > epinephrineLimit;
-                resultsGrid.innerHTML += `
-                    <div class="result-card ${epiOverLimit ? 'over-limit' : ''}">
-                        <h4>Epinephrine Administered</h4>
-                        <div class="result-value">${totals.epinephrine.toFixed(3)} mg</div>
-                    </div>
-                `;
-
-                resultsGrid.innerHTML += `
-                    <div class="result-card">
-                        <h4>Epinephrine Limit (${isCardiac ? 'Cardiac' : 'Normal'})</h4>
-                        <div class="result-value">${epinephrineLimit.toFixed(3)} mg</div>
-                    </div>
-                `;
-            }
-
-            // 5. Total Anesthetic Amount
+            // 2. Applicable MRD (the limiting factor)
             resultsGrid.innerHTML += `
-                <div class="result-card total-anesthetic-card">
+                <div class="result-card">
+                    <h4>Applicable MRD</h4>
+                    <div class="result-value">${applicableMRD.toFixed(1)} mg</div>
+                    <small style="color: #94a3b8; margin-top: 8px; display: block;">${applicableMRDInfo}</small>
+                </div>
+            `;
+
+            // 3. Total Anesthetic Amount (highlight if over limit)
+            resultsGrid.innerHTML += `
+                <div class="result-card total-anesthetic-card ${anestheticOverLimit ? 'over-limit' : ''}">
                     <h4>Total Anesthetic Administered</h4>
                     <div class="result-value">${totalAnestheticMg.toFixed(1)} mg</div>
                 </div>
             `;
 
-            // Safety check
-            checkSafety(totals, usedAnesthetics, weightInKg, epinephrineLimit);
-        }
-
-        function checkSafety(totals, usedAnesthetics, weightInKg, epinephrineLimit) {
-            const alertDiv = document.getElementById('safetyAlert');
-            let warnings = [];
-
+            // 4. Individual anesthetic breakdowns (for reference)
             usedAnesthetics.forEach(type => {
                 const anesthetic = anesthetics[type];
-                const mrd = weightInKg * anesthetic.mrdPerKg;
-                
-                if (totals[type] > mrd) {
-                    warnings.push(`⚠️ ${anesthetic.name} dose (${totals[type].toFixed(1)}mg) exceeds MRD (${mrd.toFixed(1)}mg)`);
+                if (totals[type] > 0) {
+                    resultsGrid.innerHTML += `
+                        <div class="result-card">
+                            <h4>${anesthetic.name}</h4>
+                            <div class="result-value">${totals[type].toFixed(1)} mg</div>
+                        </div>
+                    `;
                 }
             });
 
-            if (totals.epinephrine > epinephrineLimit) {
-                warnings.push(`⚠️ Epinephrine dose (${totals.epinephrine.toFixed(3)}mg) exceeds limit (${epinephrineLimit.toFixed(3)}mg)`);
+            // 5. Epinephrine (show if cardiac is selected OR if epinephrine was administered)
+            if (isCardiac || totals.epinephrine > 0) {
+                resultsGrid.innerHTML += `
+                    <div class="result-card ${epiOverLimit ? 'over-limit' : ''}">
+                        <h4>Epinephrine Administered</h4>
+                        <div class="result-value">${totals.epinephrine.toFixed(3)} mg</div>
+                        <small style="color: #94a3b8; margin-top: 8px; display: block;">Limit: ${epinephrineLimit.toFixed(3)} mg</small>
+                    </div>
+                `;
+            }
+
+            // 6. Safety Status
+            resultsGrid.innerHTML += `
+                <div class="result-card ${hasOverLimit ? 'over-limit' : 'safe'}">
+                    <h4>Safety Status</h4>
+                    <div class="result-value">${hasOverLimit ? '⚠️ OVER LIMIT' : '✅ SAFE'}</div>
+                </div>
+            `;
+
+            // Detailed safety check
+            checkDetailedSafety(totalAnestheticMg, applicableMRD, totals.epinephrine, epinephrineLimit, anestheticOverLimit, epiOverLimit);
+        }
+
+        function checkDetailedSafety(totalAnestheticMg, applicableMRD, totalEpinephrine, epinephrineLimit, anestheticOverLimit, epiOverLimit) {
+            const alertDiv = document.getElementById('safetyAlert');
+            let warnings = [];
+
+            if (anestheticOverLimit) {
+                warnings.push(`⚠️ Total anesthetic dose (${totalAnestheticMg.toFixed(1)}mg) exceeds applicable MRD (${applicableMRD.toFixed(1)}mg)`);
+            }
+
+            if (epiOverLimit) {
+                warnings.push(`⚠️ Epinephrine dose (${totalEpinephrine.toFixed(3)}mg) exceeds limit (${epinephrineLimit.toFixed(3)}mg)`);
             }
 
             if (warnings.length > 0) {
